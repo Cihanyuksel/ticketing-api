@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  # 🐘 PostgreSQL Servisi
+  postgres:
+    image: postgres:15-alpine
+    container_name: ticketing_postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ticketing-network
+
+  # ⚡ Redis Servisi
+  redis:
+    image: redis:alpine
+    container_name: ticketing_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    networks:
+      - ticketing-network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - ticketing-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ticketing-network:
+    driver: bridge
