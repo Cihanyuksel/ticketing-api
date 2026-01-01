@@ -2,6 +2,7 @@ import { Entity, Column, ManyToOne, JoinColumn, Unique } from "typeorm";
 import { BaseEntity } from "../common/BaseEntity";
 import { Event } from "../event/Event";
 import { Seat } from "../venue/Seat";
+import { User } from "../auth/User";
 
 export enum TicketStatus {
   PAID = "PAID",
@@ -20,8 +21,9 @@ export class Ticket extends BaseEntity {
   @JoinColumn({ name: "seat_id" })
   seat!: Seat;
 
-  @Column({ type: "uuid" })
-  userId!: string;
+  @ManyToOne(() => User, { nullable: false })
+  @JoinColumn({ name: "user_id" })
+  user!: User;
 
   @Column({ type: "decimal", precision: 10, scale: 2 })
   price!: number;
@@ -35,6 +37,9 @@ export class Ticket extends BaseEntity {
     default: TicketStatus.PAID,
   })
   status!: TicketStatus;
+
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  purchasedAt!: Date;
 
   @Column({ unique: true })
   referenceCode!: string;

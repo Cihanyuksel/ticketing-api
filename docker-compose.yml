@@ -6,7 +6,7 @@ services:
     image: postgres:15-alpine
     container_name: ticketing_postgres
     ports:
-      - "5433:5432"
+      - "5433:5432" # Dışarıdan 5433, içeriden 5432
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -22,17 +22,33 @@ services:
     container_name: ticketing_redis
     ports:
       - "6379:6379"
-    command: redis-server --save 60 1 --loglevel warning
+    # AOF (Append Only File) açalım ki restart edince veriler uçmasın (opsiyonel ama hardcore için iyi)
+    command: redis-server --appendonly yes 
     networks:
       - ticketing-network
 
+  # 🗄️ SQL GUI
   adminer:
     image: adminer
+    container_name: ticketing_adminer
     restart: always
     ports:
       - "8080:8080"
     networks:
       - ticketing-network
+
+  # 🕵️ Redis GUI 
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ticketing_redis_gui
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - ticketing-network
+    depends_on:
+      - redis
 
 volumes:
   postgres_data:

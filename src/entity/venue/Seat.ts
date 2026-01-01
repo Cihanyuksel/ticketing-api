@@ -7,6 +7,9 @@ export class Seat extends BaseEntity {
   @Column()
   seatNumber!: string;
 
+  @Column({ name: "row_id" })
+  rowId!: string;
+
   @ManyToOne(() => Row, (row) => row.seats, {
     onDelete: "CASCADE",
   })

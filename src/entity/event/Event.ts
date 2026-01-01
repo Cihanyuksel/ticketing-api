@@ -24,6 +24,9 @@ export class Event extends BaseEntity {
   @Column({ type: "timestamp" })
   date!: Date;
 
+  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
+  basePrice!: number;
+
   @Column({
     type: "enum",
     enum: EventType,

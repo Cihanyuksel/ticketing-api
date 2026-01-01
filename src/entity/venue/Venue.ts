@@ -16,6 +16,9 @@ export class Venue extends BaseEntity {
   @Column("text")
   address!: string;
 
+  @Column({ default: 0, type: "int" })
+  totalCapacity!: number;
+
   @Column({ nullable: true })
   imageUrl?: string;
 

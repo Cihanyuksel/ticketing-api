@@ -1,12 +1,13 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
-import { Seat } from "../domain/venue/Seat";
-import { Row } from "../domain/venue/Rows";
-import { Section } from "../domain/venue/Section";
-import { Venue } from "../domain/venue/Venue";
-import { Ticket } from "../domain/ticket/Ticket";
-import { Event } from "../domain/event/Event";
+import { Seat } from "../entity/venue/Seat";
+import { Row } from "../entity/venue/Rows";
+import { Section } from "../entity/venue/Section";
+import { Venue } from "../entity/venue/Venue";
+import { Ticket } from "../entity/ticket/Ticket";
+import { Event } from "../entity/event/Event";
+import { User } from "../entity/auth/User";
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ export const AppDataSource = new DataSource({
   synchronize: true,
   logging: false,
 
-  entities: [Venue, Section, Row, Seat, Event, Ticket],
+  entities: [Venue, Section, Row, Seat, Event, Ticket, User],
   migrations: [],
   subscribers: [],
 });
