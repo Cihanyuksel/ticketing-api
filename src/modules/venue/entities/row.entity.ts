@@ -1,7 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from "typeorm";
-import { BaseEntity } from "../common/BaseEntity";
-import { Section } from "./Section";
-import { Seat } from "./Seat";
+import { BaseEntity } from "../../../entity/common/BaseEntity";
+import { Section } from "./section.entity";
+import { Seat } from "./seat.entity";
 
 @Entity("rows")
 export class Row extends BaseEntity {

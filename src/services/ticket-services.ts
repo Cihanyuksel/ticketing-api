@@ -1,10 +1,10 @@
 import redisClient from "../config/redis";
 import { AppDataSource } from "../config/db";
 import { Ticket, TicketStatus } from "../entity/ticket/Ticket";
-import { Seat } from "../entity/venue/Seat";
 import { Event } from "../entity/event/Event";
 import logger from "../utils/logger";
 import { User } from "../entity/auth/User";
+import { Seat } from "../modules/venue/entities/seat.entity";
 
 export class TicketService {
   private static LOCK_TTL_SECONDS = 600;

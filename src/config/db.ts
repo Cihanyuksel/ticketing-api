@@ -1,13 +1,13 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
-import { Seat } from "../entity/venue/Seat";
-import { Row } from "../entity/venue/Rows";
-import { Section } from "../entity/venue/Section";
-import { Venue } from "../entity/venue/Venue";
+import { Row } from "../modules/venue/entities/row.entity";
+import { Section } from "../modules/venue/entities/section.entity";
+import { Venue } from "../modules/venue/entities/venue.entity";
 import { Ticket } from "../entity/ticket/Ticket";
 import { Event } from "../entity/event/Event";
 import { User } from "../entity/auth/User";
+import { Seat } from "../modules/venue/entities/seat.entity";
 
 dotenv.config();
 

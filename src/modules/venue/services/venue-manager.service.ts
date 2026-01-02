@@ -1,13 +1,14 @@
-import { AppDataSource } from "../../config/db";
-import { Row } from "../../entity/venue/Rows";
-import { Seat } from "../../entity/venue/Seat";
-import { Section } from "../../entity/venue/Section";
-import { Venue } from "../../entity/venue/Venue";
-import logger from "../../utils/logger";
-import { VenueCacheService } from "./venue-cache-service";
-import { VenueCapacityService } from "./venue-capacity-service";
+import { AppDataSource } from "../../../config/db";
+import { Row } from "../entities/row.entity";
+import { Seat } from "../entities/seat.entity";
+import { Section } from "../entities/section.entity";
+import { Venue } from "../entities/venue.entity";
+import logger from "../../../utils/logger";
+import { VenueCacheService } from "./venue-cache.service";
+import { VenueCapacityService } from "./venue-capacity.service";
+import { NotFoundError } from "../../../common/errors/app.error";
 
-export class VenueAggregateService {
+export class VenueManagerService {
   private venueRepository = AppDataSource.getRepository(Venue);
   private sectionRepository = AppDataSource.getRepository(Section);
   private rowRepository = AppDataSource.getRepository(Row);
@@ -19,7 +20,6 @@ export class VenueAggregateService {
   // ============================================
   // 1. VENUE MANAGEMENT
   // ============================================
-
   async createVenue(venueData: {
     name: string;
     city: string;
@@ -108,30 +108,26 @@ export class VenueAggregateService {
   // ============================================
   // 2. SECTION MANAGEMENT
   // ============================================
-
   async addSection(
     venueId: string,
     sectionData: { name: string }
   ): Promise<Section> {
-    try {
-      const venue = await this.venueRepository.findOneBy({ id: venueId });
-      if (!venue) throw new Error("Mekan bulunamadı");
-
-      const section = this.sectionRepository.create({
-        name: sectionData.name,
-        capacity: 0,
-        venue: venue,
-      });
-
-      const saved = await this.sectionRepository.save(section);
-      await this.cacheService.clearVenueCache(venueId);
-
-      logger.info(`📍 Bölüm eklendi: ${saved.name} -> ${venue.name}`);
-      return saved;
-    } catch (error) {
-      logger.error("Bölüm eklenirken hata:", error);
-      throw error;
+    const venue = await this.venueRepository.findOneBy({ id: venueId });
+    if (!venue) {
+      throw new NotFoundError("Mekan", venueId);
     }
+
+    const section = this.sectionRepository.create({
+      name: sectionData.name,
+      capacity: 0,
+      venue: venue,
+    });
+
+    const saved = await this.sectionRepository.save(section);
+    await this.cacheService.clearVenueCache(venueId);
+
+    logger.info(`📍 Bölüm eklendi: ${saved.name} -> ${venue.name}`);
+    return saved;
   }
 
   async updateSection(
@@ -172,61 +168,57 @@ export class VenueAggregateService {
   // ============================================
   // 3. ROW MANAGEMENT
   // ============================================
-
   async addRow(
     sectionId: string,
     rowData: { rowLabel: string; seatCount: number }
   ): Promise<Row> {
-    try {
-      const section = await this.sectionRepository.findOne({
-        where: { id: sectionId },
-        relations: ["venue"],
-      });
+    const section = await this.sectionRepository.findOne({
+      where: { id: sectionId },
+      relations: ["venue"],
+    });
 
-      if (!section) throw new Error("Bölüm bulunamadı");
-
-      const row = this.rowRepository.create({
-        rowLabel: rowData.rowLabel,
-        section: section,
-      });
-
-      const savedRow = await this.rowRepository.save(row);
-
-      const seatValues = [];
-      for (let i = 1; i <= rowData.seatCount; i++) {
-        seatValues.push({
-          seatNumber: `${rowData.rowLabel}-${i}`,
-          rowId: savedRow.id,
-        });
-      }
-
-      await this.seatRepository
-        .createQueryBuilder()
-        .insert()
-        .into(Seat)
-        .values(seatValues)
-        .execute();
-
-      const rowWithSeats = await this.rowRepository.findOne({
-        where: { id: savedRow.id },
-        relations: ["seats"],
-      });
-
-      await this.capacityService.recalculateFromSection(
-        sectionId,
-        section.venue.id
-      );
-      await this.cacheService.clearVenueCache(section.venue.id);
-
-      logger.info(
-        `🪑 Sıra eklendi: ${rowData.rowLabel} (${rowData.seatCount} koltuk)`
-      );
-
-      return rowWithSeats!;
-    } catch (error) {
-      logger.error("Sıra eklenirken hata:", error);
-      throw error;
+    if (!section) {
+      throw new NotFoundError("Bölüm", sectionId);
     }
+
+    const row = this.rowRepository.create({
+      rowLabel: rowData.rowLabel,
+      section: section,
+    });
+
+    const savedRow = await this.rowRepository.save(row);
+
+    const seatValues = [];
+    for (let i = 1; i <= rowData.seatCount; i++) {
+      seatValues.push({
+        seatNumber: `${rowData.rowLabel}-${i}`,
+        rowId: savedRow.id,
+      });
+    }
+
+    await this.seatRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Seat)
+      .values(seatValues)
+      .execute();
+
+    const rowWithSeats = await this.rowRepository.findOne({
+      where: { id: savedRow.id },
+      relations: ["seats"],
+    });
+
+    await this.capacityService.recalculateFromSection(
+      sectionId,
+      section.venue.id
+    );
+    await this.cacheService.clearVenueCache(section.venue.id);
+
+    logger.info(
+      `🪑 Sıra eklendi: ${rowData.rowLabel} (${rowData.seatCount} koltuk)`
+    );
+
+    return rowWithSeats!;
   }
 
   async deleteRow(rowId: string): Promise<boolean> {
@@ -267,7 +259,9 @@ export class VenueAggregateService {
         relations: ["venue"],
       });
 
-      if (!section) throw new Error("Bölüm bulunamadı");
+      if (!section) {
+        throw new NotFoundError("Bölüm", sectionId);
+      }
 
       const rowsToInsert: Partial<Row>[] = [];
       for (
@@ -339,96 +333,89 @@ export class VenueAggregateService {
   // ============================================
   // 4. SEAT MANAGEMENT
   // ============================================
-
   async addSeat(
     rowId: string,
     seatData: { seatNumber: string }
   ): Promise<Seat> {
-    try {
-      const row = await this.rowRepository.findOne({
-        where: { id: rowId },
-        relations: ["section", "section.venue"],
-      });
+    const row = await this.rowRepository.findOne({
+      where: { id: rowId },
+      relations: ["section", "section.venue"],
+    });
 
-      if (!row) throw new Error("Sıra bulunamadı");
-
-      const result = await this.seatRepository
-        .createQueryBuilder()
-        .insert()
-        .into(Seat)
-        .values({
-          seatNumber: seatData.seatNumber,
-          rowId: row.id,
-        })
-        .execute();
-
-      const seatId = result.identifiers[0].id;
-      const saved = await this.seatRepository.findOne({
-        where: { id: seatId },
-      });
-
-      await this.capacityService.recalculateFromSection(
-        row.section.id,
-        row.section.venue.id
-      );
-      await this.cacheService.clearVenueCache(row.section.venue.id);
-
-      logger.info(`🪑 Koltuk eklendi: ${seatData.seatNumber}`);
-      return saved!;
-    } catch (error) {
-      logger.error("Koltuk eklenirken hata:", error);
-      throw error;
+    if (!row) {
+      throw new NotFoundError("Sıra", rowId);
     }
+
+    const result = await this.seatRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Seat)
+      .values({
+        seatNumber: seatData.seatNumber,
+        rowId: row.id,
+      })
+      .execute();
+
+    const seatId = result.identifiers[0].id;
+    const saved = await this.seatRepository.findOne({
+      where: { id: seatId },
+    });
+
+    await this.capacityService.recalculateFromSection(
+      row.section.id,
+      row.section.venue.id
+    );
+    await this.cacheService.clearVenueCache(row.section.venue.id);
+
+    logger.info(`🪑 Koltuk eklendi: ${seatData.seatNumber}`);
+    return saved!;
   }
 
   async addBulkSeats(
     rowId: string,
     bulkData: { startNumber: number; endNumber: number; prefix?: string }
   ): Promise<Seat[]> {
-    try {
-      const row = await this.rowRepository.findOne({
-        where: { id: rowId },
-        relations: ["section", "section.venue"],
-      });
+    const row = await this.rowRepository.findOne({
+      where: { id: rowId },
+      relations: ["section", "section.venue"],
+    });
 
-      if (!row) throw new Error("Sıra bulunamadı");
-
-      const prefix = bulkData.prefix || row.rowLabel;
-      const seatValues = [];
-
-      for (let i = bulkData.startNumber; i <= bulkData.endNumber; i++) {
-        seatValues.push({
-          seatNumber: `${prefix}-${i}`,
-          rowId: row.id,
-        });
-      }
-
-      await this.seatRepository
-        .createQueryBuilder()
-        .insert()
-        .into(Seat)
-        .values(seatValues)
-        .execute();
-
-      const savedSeats = await this.seatRepository.find({
-        where: { row: { id: rowId } },
-        order: { seatNumber: "ASC" },
-      });
-
-      await this.capacityService.recalculateFromSection(
-        row.section.id,
-        row.section.venue.id
-      );
-      await this.cacheService.clearVenueCache(row.section.venue.id);
-
-      logger.info(
-        `🪑 Toplu koltuk eklendi: ${seatValues.length} koltuk (${prefix})`
-      );
-      return savedSeats;
-    } catch (error) {
-      logger.error("Toplu koltuk eklenirken hata:", error);
-      throw error;
+    if (!row) {
+      throw new NotFoundError("Sıra", rowId);
     }
+
+    const prefix = bulkData.prefix || row.rowLabel;
+    const seatValues = [];
+
+    for (let i = bulkData.startNumber; i <= bulkData.endNumber; i++) {
+      seatValues.push({
+        seatNumber: `${prefix}-${i}`,
+        rowId: row.id,
+      });
+    }
+
+    await this.seatRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Seat)
+      .values(seatValues)
+      .execute();
+
+    const savedSeats = await this.seatRepository.find({
+      where: { row: { id: rowId } },
+      order: { seatNumber: "ASC" },
+    });
+
+    await this.capacityService.recalculateFromSection(
+      row.section.id,
+      row.section.venue.id
+    );
+    await this.cacheService.clearVenueCache(row.section.venue.id);
+
+    logger.info(
+      `🪑 Toplu koltuk eklendi: ${seatValues.length} koltuk (${prefix})`
+    );
+    return savedSeats;
   }
 
   async updateSeat(

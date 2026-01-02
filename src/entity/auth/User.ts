@@ -1,6 +1,13 @@
 import { Entity, Column, BeforeInsert } from "typeorm";
-import * as bcrypt from "bcrypt"; 
-import { BaseEntity } from "../common/BaseEntity";
+import * as bcrypt from "bcrypt";
+import { BaseEntity } from "../common/BaseEntity"; 
+
+export enum Gender {
+  MALE = "MALE",
+  FEMALE = "FEMALE",
+  OTHER = "OTHER",
+  PREFER_NOT_TO_SAY = "NOT_SPECIFIED",
+}
 
 export enum UserRole {
   ADMIN = "ADMIN",
@@ -8,22 +15,39 @@ export enum UserRole {
 }
 
 @Entity("users")
-
 export class User extends BaseEntity {
-  @Column({ unique: true }) 
+  @Column({ unique: true })
   email!: string;
 
   @Column({ select: false })
   password!: string;
 
+  @Column()
+  firstName!: string;
+
+  @Column()
+  lastName!: string;
+
+  @Column({ unique: true, nullable: true })
+  phone!: string;
+
+  @Column({ type: "enum", enum: Gender, default: Gender.PREFER_NOT_TO_SAY })
+  gender!: Gender;
+
+  @Column({ type: "date", nullable: true })
+  dateOfBirth!: Date;
+
+  @Column({ nullable: true })
+  city!: string;
+
+  @Column({ nullable: true })
+  country!: string;
+
   @Column({ type: "enum", enum: UserRole, default: UserRole.USER })
   role!: UserRole;
 
-  @Column({ nullable: true })
-  firstName!: string;
-
-  @Column({ nullable: true })
-  lastName!: string;
+  @Column({ default: true })
+  isActive!: boolean;
 
   @BeforeInsert()
   async hashPassword() {

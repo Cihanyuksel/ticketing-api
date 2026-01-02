@@ -1,5 +1,5 @@
-import redisClient from "../../config/redis";
-import logger from "../../utils/logger";
+import redisClient from "../../../config/redis";
+import logger from "../../../utils/logger";
 
 export class VenueCacheService {
   private readonly CACHE_TTL = 3600;

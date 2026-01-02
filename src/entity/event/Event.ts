@@ -1,6 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn } from "typeorm";
 import { BaseEntity } from "../common/BaseEntity";
-import { Venue } from "../venue/Venue";
+import { Venue } from "../../modules/venue/entities/venue.entity";
 
 export enum PricingStrategyType {
   STANDARD = "STANDARD",

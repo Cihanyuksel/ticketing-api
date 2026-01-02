@@ -1,8 +1,8 @@
-import { AppDataSource } from "../../config/db";
-import { Row } from "../../entity/venue/Rows";
-import { Section } from "../../entity/venue/Section";
-import { Venue } from "../../entity/venue/Venue";
-import logger from "../../utils/logger";
+import { AppDataSource } from "../../../config/db";
+import { Row } from "../entities/row.entity";
+import { Section } from "../entities/section.entity";
+import { Venue } from "../entities/venue.entity";
+import logger from "../../../utils/logger";
 
 export class VenueCapacityService {
   private venueRepository = AppDataSource.getRepository(Venue);

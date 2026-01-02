@@ -1,5 +1,5 @@
 import { Event, EventType, PricingStrategyType } from "./Event";
-import { Venue } from "../venue/Venue";
+import { Venue } from "../../modules/venue/entities/venue.entity";
 
 interface CreateEventDTO {
   name: string;
