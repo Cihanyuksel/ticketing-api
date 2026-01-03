@@ -4,18 +4,21 @@ import { Seat } from "../entities/seat.entity";
 import { Section } from "../entities/section.entity";
 import { Venue } from "../entities/venue.entity";
 import logger from "../../../utils/logger";
-import { VenueCacheService } from "./venue-cache.service";
-import { VenueCapacityService } from "./venue-capacity.service";
 import { NotFoundError } from "../../../common/errors/app.error";
+import { IVenueCacheService, IVenueCapacityService } from "../venue.interface";
+import { Repository } from "typeorm";
 
 export class VenueManagerService {
-  private venueRepository = AppDataSource.getRepository(Venue);
-  private sectionRepository = AppDataSource.getRepository(Section);
-  private rowRepository = AppDataSource.getRepository(Row);
-  private seatRepository = AppDataSource.getRepository(Seat);
 
-  private cacheService = new VenueCacheService();
-  private capacityService = new VenueCapacityService();
+  constructor(
+    private readonly venueRepository: Repository<Venue>,
+    private readonly sectionRepository: Repository<Section>,
+    private readonly rowRepository: Repository<Row>,
+    private readonly seatRepository: Repository<Seat>,
+
+    private readonly cacheService: IVenueCacheService,
+    private readonly capacityService: IVenueCapacityService
+  ) {}
 
   // ============================================
   // 1. VENUE MANAGEMENT

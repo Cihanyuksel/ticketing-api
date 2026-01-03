@@ -3,14 +3,17 @@ import { AppDataSource } from "../config/db";
 import { Ticket, TicketStatus } from "../entity/ticket/Ticket";
 import { Event } from "../entity/event/Event";
 import logger from "../utils/logger";
-import { User } from "../entity/auth/User";
 import { Seat } from "../modules/venue/entities/seat.entity";
+import { User } from "../modules/auth/user.entity";
 
 export class TicketService {
   private static LOCK_TTL_SECONDS = 600;
 
-  async lockSeat(eventId: string, seatId: string, userId: string): Promise<boolean> {
-
+  async lockSeat(
+    eventId: string,
+    seatId: string,
+    userId: string
+  ): Promise<boolean> {
     const lockKey = `lock:event:${eventId}:seat:${seatId}`;
 
     try {
@@ -32,30 +35,31 @@ export class TicketService {
     }
   }
 
-  
-  async validateLock(eventId: string, seatId: string, userId: string): Promise<boolean> {
-
+  async validateLock(
+    eventId: string,
+    seatId: string,
+    userId: string
+  ): Promise<boolean> {
     const lockKey = `lock:event:${eventId}:seat:${seatId}`;
     const lockedBy = await redisClient.get(lockKey);
     return lockedBy === userId;
-
   }
 
   async unlockSeat(eventId: string, seatId: string): Promise<void> {
-
     const lockKey = `lock:event:${eventId}:seat:${seatId}`;
     await redisClient.del(lockKey);
     logger.info(`🔓 Kilit manuel kaldırıldı: ${lockKey}`);
-    
   }
-
 
   private generateReferenceCode(): string {
     return Math.random().toString(36).substring(2, 10).toUpperCase();
   }
 
-  async purchaseTicket(eventId: string, seatId: string, userId: string): Promise<Ticket> {
-
+  async purchaseTicket(
+    eventId: string,
+    seatId: string,
+    userId: string
+  ): Promise<Ticket> {
     const hasLock = await this.validateLock(eventId, seatId, userId);
 
     if (!hasLock) {

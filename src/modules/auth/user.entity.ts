@@ -1,6 +1,6 @@
 import { Entity, Column, BeforeInsert } from "typeorm";
 import * as bcrypt from "bcrypt";
-import { BaseEntity } from "../common/BaseEntity"; 
+import { BaseEntity } from "../../entity/common/BaseEntity";
 
 export enum Gender {
   MALE = "MALE",

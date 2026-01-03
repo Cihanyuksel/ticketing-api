@@ -6,8 +6,8 @@ import { Section } from "../modules/venue/entities/section.entity";
 import { Venue } from "../modules/venue/entities/venue.entity";
 import { Ticket } from "../entity/ticket/Ticket";
 import { Event } from "../entity/event/Event";
-import { User } from "../entity/auth/User";
 import { Seat } from "../modules/venue/entities/seat.entity";
+import { User } from "../modules/auth/user.entity";
 
 dotenv.config();
 

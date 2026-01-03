@@ -1,6 +1,4 @@
 import { Router } from "express";
-import { VenueController } from "../controllers/venue.controller";
-import { VenueManagerService } from "../services/venue-manager.service";
 import {
   CreateVenueDTO,
   UpdateVenueDTO,
@@ -11,12 +9,11 @@ import {
   AddSeatDTO,
   AddBulkSeatsDTO,
   UpdateSeatDTO,
-} from "../dtos/venue.dto";
-import { validateRequest } from "../../../common/middleware/validate-request";
+} from "./venue.dto";
+import { validateRequest } from "../../common/middleware/validate-request";
+import { venueController } from "./venue.module";
 
 const router = Router();
-const venueService = new VenueManagerService();
-const venueController = new VenueController(venueService);
 
 // ============================================
 // VENUE OPERATIONS

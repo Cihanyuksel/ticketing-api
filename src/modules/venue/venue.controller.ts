@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
-import { VenueManagerService } from "../services/venue-manager.service";
-import { ApiResponse } from "../../../common/responses/api-response";
-import { asyncHandler } from "../../../common/middleware/async-handler";
-import { NotFoundError } from "../../../common/errors/app.error";
+import { VenueManagerService } from "./services/venue-manager.service";
+import { ApiResponse } from "../../common/responses/api-response";
+import { asyncHandler } from "../../common/middleware/async-handler";
+import { NotFoundError } from "../../common/errors/app.error";
 
 export class VenueController {
+  
   constructor(private venueService: VenueManagerService) {}
 
   // ============================================
