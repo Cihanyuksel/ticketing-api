@@ -32,6 +32,13 @@ export class NotFoundError extends AppError {
   }
 }
 
+// BadRequestError - 400 Bad Request
+export class BadRequestError extends AppError {
+  constructor(message: string = "Geçersiz istek") {
+    super(message, 400);
+  }
+}
+
 // UnauthorizedError - 401 Unauthorized
 export class UnauthorizedError extends AppError {
   constructor(message: string = "Kimlik doğrulama gerekli") {

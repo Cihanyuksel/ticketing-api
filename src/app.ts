@@ -4,6 +4,7 @@ import cors from "cors";
 import venueRoutes from "./modules/venue/venue.routes";
 import ticketRoutes from "./routes/ticket-route";
 import authRoutes from "./modules/auth/auth.routes";
+import eventRoutes from "./modules/event/event.routes";
 import {
   errorHandler,
   notFoundHandler,
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/venues", venueRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/events", eventRoutes);
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "UP", timestamp: new Date() });

@@ -1,10 +1,10 @@
 import redisClient from "../config/redis";
 import { AppDataSource } from "../config/db";
 import { Ticket, TicketStatus } from "../entity/ticket/Ticket";
-import { Event } from "../entity/event/Event";
 import logger from "../utils/logger";
 import { Seat } from "../modules/venue/entities/seat.entity";
 import { User } from "../modules/auth/user.entity";
+import { Event } from "../modules/event/entities/event.entity";
 
 export class TicketService {
   private static LOCK_TTL_SECONDS = 600;
@@ -93,7 +93,6 @@ export class TicketService {
       newTicket.event = event;
       newTicket.seat = seat;
       newTicket.user = user;
-      newTicket.price = event.basePrice;
       newTicket.status = TicketStatus.PAID;
       newTicket.purchasedAt = new Date();
       newTicket.referenceCode = this.generateReferenceCode();

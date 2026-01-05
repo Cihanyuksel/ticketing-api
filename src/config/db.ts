@@ -4,10 +4,13 @@ import dotenv from "dotenv";
 import { Row } from "../modules/venue/entities/row.entity";
 import { Section } from "../modules/venue/entities/section.entity";
 import { Venue } from "../modules/venue/entities/venue.entity";
-import { Ticket } from "../entity/ticket/Ticket";
-import { Event } from "../entity/event/Event";
+import { Event } from "../modules/event/entities/event.entity";
 import { Seat } from "../modules/venue/entities/seat.entity";
 import { User } from "../modules/auth/user.entity";
+import { EventCategory } from "../modules/event/entities/event-category.entity";
+import { EventSession } from "../modules/event/entities/event-session.entity";
+import { TicketPrice } from "../modules/event/entities/ticket-price.entity";
+import { PricingRule } from "../modules/event/entities/pricing-rules.entity";
 
 dotenv.config();
 
@@ -22,7 +25,18 @@ export const AppDataSource = new DataSource({
   synchronize: true,
   logging: false,
 
-  entities: [Venue, Section, Row, Seat, Event, Ticket, User],
+  entities: [
+    Venue,
+    Section,
+    Row,
+    Seat,
+    Event,
+    User,
+    EventCategory,
+    EventSession,
+    TicketPrice,
+    PricingRule,
+  ],
   migrations: [],
   subscribers: [],
 });

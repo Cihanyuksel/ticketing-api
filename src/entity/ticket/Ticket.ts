@@ -1,8 +1,8 @@
 import { Entity, Column, ManyToOne, JoinColumn, Unique } from "typeorm";
 import { BaseEntity } from "../common/BaseEntity";
-import { Event } from "../event/Event";
 import { Seat } from "../../modules/venue/entities/seat.entity";
 import { User } from "../../modules/auth/user.entity";
+import { Event } from "../../modules/event/entities/event.entity";
 
 export enum TicketStatus {
   PAID = "PAID",
