@@ -2,9 +2,10 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import venueRoutes from "./modules/venue/venue.routes";
-import ticketRoutes from "./routes/ticket-route";
+import ticketRoutes from "./modules/ticket/ticket.routes";
 import authRoutes from "./modules/auth/auth.routes";
 import eventRoutes from "./modules/event/event.routes";
+import bookingRoutes from "./modules/booking/booking.routes";
 import {
   errorHandler,
   notFoundHandler,
@@ -20,6 +21,7 @@ app.use("/api/tickets", ticketRoutes);
 app.use("/api/venues", venueRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/bookings", bookingRoutes); 
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "UP", timestamp: new Date() });

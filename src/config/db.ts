@@ -11,6 +11,8 @@ import { EventCategory } from "../modules/event/entities/event-category.entity";
 import { EventSession } from "../modules/event/entities/event-session.entity";
 import { TicketPrice } from "../modules/event/entities/ticket-price.entity";
 import { PricingRule } from "../modules/event/entities/pricing-rules.entity";
+import { Booking } from "../modules/booking/booking.entity";
+import { Ticket } from "../modules/ticket/ticket.entity";
 
 dotenv.config();
 
@@ -36,6 +38,8 @@ export const AppDataSource = new DataSource({
     EventSession,
     TicketPrice,
     PricingRule,
+    Booking,
+    Ticket
   ],
   migrations: [],
   subscribers: [],
