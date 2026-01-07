@@ -41,4 +41,20 @@ export class BookingController {
       return ApiResponse.success(res, booking, "Rezervasyon detayı");
     }
   );
+
+  // PATCH /bookings/:bookingId/cancel
+  cancelBooking = asyncHandlerWithThis(
+    this,
+    async (req: Request, res: Response) => {
+      const { bookingId } = req.params;
+
+      await this.bookingService.cancelBooking(bookingId);
+
+      return ApiResponse.success(
+        res,
+        null,
+        "Rezervasyon başarıyla iptal edildi."
+      );
+    }
+  );
 }

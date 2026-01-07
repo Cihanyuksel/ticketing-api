@@ -2,12 +2,13 @@ import { AppDataSource } from "../../config/db";
 import redisClient from "../../config/redis";
 import { Booking, BookingStatus } from "./booking.entity";
 import { PricingCalculatorService } from "../event/services/pricing-calculater.service";
-import { BadRequestError } from "../../common/errors/app.error";
+import { BadRequestError, NotFoundError } from "../../common/errors/app.error";
+import logger from "../../utils/logger";
 
 export class BookingService {
   private bookingRepo = AppDataSource.getRepository(Booking);
   private pricingCalculator = new PricingCalculatorService();
-  private static LOCK_TTL_SECONDS = 600; 
+  private static LOCK_TTL_SECONDS = 600;
 
   async createBooking(data: {
     sessionId: string;
@@ -56,6 +57,31 @@ export class BookingService {
       await redisClient.del(lockKey);
       throw error;
     }
+  }
+
+  async cancelBooking(bookingId: string): Promise<void> {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId },
+      relations: ["session", "seat"],
+    });
+
+    if (!booking) {
+      throw new NotFoundError("Rezervasyon bulunamadı.");
+    }
+
+    if (booking.status !== BookingStatus.PENDING) {
+      throw new BadRequestError(
+        "Sadece beklemedeki rezervasyonlar iptal edilebilir."
+      );
+    }
+
+    booking.status = BookingStatus.CANCELLED;
+    await this.bookingRepo.save(booking);
+
+    const lockKey = `lock:session:${booking.sessionId}:seat:${booking.seatId}`;
+    await redisClient.del(lockKey);
+
+    logger.info(`🚫 Rezervasyon iptal edildi ve kilit açıldı: ${bookingId}`);
   }
 
   async getBookingById(bookingId: string) {
