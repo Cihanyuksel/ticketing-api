@@ -2,26 +2,23 @@ import { Request, Response } from "express";
 import { BookingService } from "./booking.service";
 import { asyncHandlerWithThis } from "../../common/middleware/async-handler";
 import { ApiResponse } from "../../common/responses/api-response";
+import { CreateBookingDto } from "./booking.dto";
 
 export class BookingController {
-  private bookingService = new BookingService();
+  constructor(private readonly bookingService: BookingService) {}
 
   // POST /bookings
   createBooking = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
-      const { sessionId, seatId, priceId, userId, userAge } = req.body;
-
-      if (!userId) {
-        throw new Error("User ID zorunludur!");
-      }
+      const dto: CreateBookingDto = req.body;
 
       const booking = await this.bookingService.createBooking({
-        sessionId,
-        seatId,
-        priceId,
-        userId,
-        userAge,
+        sessionId: dto.sessionId,
+        seatId: dto.seatId,
+        priceId: dto.priceId,
+        userId: dto.userId,
+        userAge: dto.userAge,
       });
 
       return ApiResponse.created(
@@ -32,7 +29,7 @@ export class BookingController {
     }
   );
 
-  // GET /bookings/:id
+  // GET /bookings/:bookingId
   getBooking = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {

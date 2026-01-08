@@ -1,4 +1,11 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToOne } from "typeorm";
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToOne,
+  Index,
+} from "typeorm";
 import { BaseEntity } from "../../entity/common/BaseEntity";
 import { User } from "../auth/user.entity";
 import { EventSession } from "../event/entities/event-session.entity";
@@ -13,6 +20,11 @@ export enum BookingStatus {
 }
 
 @Entity("bookings")
+@Index("UQ_active_booking_seat", ["sessionId", "seatId"], {
+  unique: true,
+  where: `"status" = 'PENDING'`,
+})
+@Index("IDX_booking_status_expires", ["status", "expiresAt"])
 export class Booking extends BaseEntity {
   @Column({
     type: "enum",
