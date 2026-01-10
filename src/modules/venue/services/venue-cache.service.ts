@@ -2,75 +2,46 @@ import redisClient from "../../../config/redis";
 import logger from "../../../utils/logger";
 
 export class VenueCacheService {
+  constructor(private redis: typeof redisClient = redisClient) {}
+
   private readonly CACHE_TTL = 3600;
 
-  async cacheVenueDetails(venueId: string, data: any): Promise<void> {
+  async set<T>(key: string, data: T): Promise<void> {
     try {
-      const cacheKey = this.getVenueCacheKey(venueId);
-      await redisClient.set(cacheKey, JSON.stringify(data), {
+      await this.redis.set(key, JSON.stringify(data), {
         EX: this.CACHE_TTL,
       });
-      logger.info(`✅ Cache kaydedildi: ${cacheKey}`);
+      logger.debug(`✅ Cache set: ${key}`);
     } catch (error) {
-      logger.error("Cache kaydetme hatası:", error);
+      logger.error(`Cache set error [${key}]:`, error);
     }
   }
 
-  async getCachedVenueDetails(venueId: string): Promise<any | null> {
+  async get<T>(key: string): Promise<T | null> {
     try {
-      const cacheKey = this.getVenueCacheKey(venueId);
-      const cachedData = await redisClient.get(cacheKey);
-
-      if (cachedData) {
-        logger.info(`⚡ Cache hit: ${cacheKey}`);
-        return JSON.parse(cachedData);
-      }
-
-      logger.info(`❌ Cache miss: ${cacheKey}`);
+      const data = await this.redis.get(key);
+      if (data) return JSON.parse(data) as T;
       return null;
     } catch (error) {
-      logger.error("Cache okuma hatası:", error);
+      logger.error(`Cache get error [${key}]:`, error);
       return null;
     }
   }
 
-  async clearVenueCache(venueId: string): Promise<void> {
+  async clear(key: string): Promise<void> {
     try {
-      const cacheKey = this.getVenueCacheKey(venueId);
-      await redisClient.del(cacheKey);
-      logger.info(`🗑️ Cache temizlendi: ${cacheKey}`);
+      await this.redis.del(key);
+      logger.info(`🗑️ Cache cleared: ${key}`);
     } catch (error) {
-      logger.error("Cache temizleme hatası:", error);
+      logger.error(`Cache clear error [${key}]:`, error);
     }
   }
 
-  async clearMultipleVenueCaches(venueIds: string[]): Promise<void> {
-    try {
-      const cacheKeys = venueIds.map((id) => this.getVenueCacheKey(id));
-      if (cacheKeys.length > 0) {
-        await redisClient.del(cacheKeys);
-        logger.info(`🗑️ ${cacheKeys.length} venue cache temizlendi`);
-      }
-    } catch (error) {
-      logger.error("Toplu cache temizleme hatası:", error);
-    }
-  }
-
-  private getVenueCacheKey(venueId: string): string {
+  public getVenueKey(venueId: string): string {
     return `venue:${venueId}:details`;
   }
 
-  async clearAllVenueCaches(): Promise<void> {
-    try {
-      const pattern = "venue:*:details";
-      const keys = await redisClient.keys(pattern);
-
-      if (keys.length > 0) {
-        await redisClient.del(keys);
-        logger.warn(`🗑️ TÜM venue cache'leri temizlendi (${keys.length} adet)`);
-      }
-    } catch (error) {
-      logger.error("Tüm cache temizleme hatası:", error);
-    }
+  async clearVenue(venueId: string) {
+    return this.clear(this.getVenueKey(venueId));
   }
 }

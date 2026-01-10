@@ -1,20 +1,21 @@
 import { AppDataSource } from "../../../config/db";
-import { Row } from "../entities/row.entity";
-import { Seat } from "../entities/seat.entity";
-import { Section } from "../entities/section.entity";
-import { Venue } from "../entities/venue.entity";
 import logger from "../../../utils/logger";
 import { NotFoundError } from "../../../common/errors/app.error";
 import { IVenueCacheService, IVenueCapacityService } from "../venue.interface";
-import { Repository } from "typeorm";
+import {
+  IVenueRepository,
+  ISectionRepository,
+  IRowRepository,
+  ISeatRepository,
+} from "../repository/venue.repository.interface";
+import { Section, Venue, Row, Seat } from "../entities";
 
 export class VenueManagerService {
-
   constructor(
-    private readonly venueRepository: Repository<Venue>,
-    private readonly sectionRepository: Repository<Section>,
-    private readonly rowRepository: Repository<Row>,
-    private readonly seatRepository: Repository<Seat>,
+    private readonly venueRepository: IVenueRepository,
+    private readonly sectionRepository: ISectionRepository,
+    private readonly rowRepository: IRowRepository,
+    private readonly seatRepository: ISeatRepository,
 
     private readonly cacheService: IVenueCacheService,
     private readonly capacityService: IVenueCapacityService
@@ -51,61 +52,38 @@ export class VenueManagerService {
     venueId: string,
     updates: Partial<Venue>
   ): Promise<Venue | null> {
-    const venue = await this.venueRepository.findOneBy({ id: venueId });
+    const venue = await this.venueRepository.findById(venueId);
     if (!venue) return null;
 
-    Object.assign(venue, updates);
-    const updated = await this.venueRepository.save(venue);
+    const updated = await this.venueRepository.update(venueId, updates);
+    await this.cacheService.clearVenue(venueId);
 
-    await this.cacheService.clearVenueCache(venueId);
     return updated;
   }
 
   async getVenueFullDetails(venueId: string): Promise<Venue | null> {
-    const cachedVenue = await this.cacheService.getCachedVenueDetails(venueId);
+    const cacheKey = this.cacheService.getVenueKey(venueId);
+    const cachedVenue = await this.cacheService.get<Venue>(cacheKey);
+
     if (cachedVenue) {
       return cachedVenue;
     }
 
-    const venue = await this.venueRepository.findOne({
-      where: { id: venueId },
-      relations: {
-        sections: {
-          rows: {
-            seats: true,
-          },
-        },
-      },
-    });
+    const venue = await this.venueRepository.findByIdWithRelations(venueId);
 
     if (venue) {
-      await this.cacheService.cacheVenueDetails(venueId, venue);
+      await this.cacheService.set(cacheKey, venue);
     }
 
     return venue;
   }
 
   async getAllVenues(): Promise<Venue[]> {
-    return await this.venueRepository.find({
-      select: {
-        id: true,
-        name: true,
-        city: true,
-        imageUrl: true,
-        totalCapacity: true,
-      },
-    });
+    return this.venueRepository.findAll();
   }
 
   async getVenueSections(venueId: string): Promise<Section[]> {
-    return await this.sectionRepository.find({
-      where: { venue: { id: venueId } },
-      select: {
-        id: true,
-        name: true,
-        capacity: true,
-      },
-    });
+    return this.sectionRepository.findByVenueId(venueId);
   }
 
   // ============================================
@@ -115,7 +93,7 @@ export class VenueManagerService {
     venueId: string,
     sectionData: { name: string }
   ): Promise<Section> {
-    const venue = await this.venueRepository.findOneBy({ id: venueId });
+    const venue = await this.venueRepository.findById(venueId);
     if (!venue) {
       throw new NotFoundError("Mekan", venueId);
     }
@@ -127,7 +105,7 @@ export class VenueManagerService {
     });
 
     const saved = await this.sectionRepository.save(section);
-    await this.cacheService.clearVenueCache(venueId);
+    await this.cacheService.clearVenue(venueId);
 
     logger.info(`📍 Bölüm eklendi: ${saved.name} -> ${venue.name}`);
     return saved;
@@ -137,33 +115,24 @@ export class VenueManagerService {
     sectionId: string,
     updates: { name?: string }
   ): Promise<Section | null> {
-    const section = await this.sectionRepository.findOne({
-      where: { id: sectionId },
-      relations: ["venue"],
-    });
-
+    const section = await this.sectionRepository.findByIdWithVenue(sectionId);
     if (!section) return null;
 
-    Object.assign(section, updates);
-    const updated = await this.sectionRepository.save(section);
+    const updated = await this.sectionRepository.update(sectionId, updates);
+    await this.cacheService.clearVenue(section.venue.id);
 
-    await this.cacheService.clearVenueCache(section.venue.id);
     return updated;
   }
 
   async deleteSection(sectionId: string): Promise<boolean> {
-    const section = await this.sectionRepository.findOne({
-      where: { id: sectionId },
-      relations: ["venue"],
-    });
-
+    const section = await this.sectionRepository.findByIdWithVenue(sectionId);
     if (!section) return false;
 
     const venueId = section.venue.id;
     await this.sectionRepository.remove(section);
 
     await this.capacityService.recalculateVenueCapacity(venueId);
-    await this.cacheService.clearVenueCache(venueId);
+    await this.cacheService.clearVenue(venueId);
 
     return true;
   }
@@ -175,11 +144,7 @@ export class VenueManagerService {
     sectionId: string,
     rowData: { rowLabel: string; seatCount: number }
   ): Promise<Row> {
-    const section = await this.sectionRepository.findOne({
-      where: { id: sectionId },
-      relations: ["venue"],
-    });
-
+    const section = await this.sectionRepository.findByIdWithVenue(sectionId);
     if (!section) {
       throw new NotFoundError("Bölüm", sectionId);
     }
@@ -199,23 +164,18 @@ export class VenueManagerService {
       });
     }
 
-    await this.seatRepository
-      .createQueryBuilder()
-      .insert()
-      .into(Seat)
-      .values(seatValues)
-      .execute();
+    await this.seatRepository.bulkInsert(seatValues);
 
-    const rowWithSeats = await this.rowRepository.findOne({
-      where: { id: savedRow.id },
-      relations: ["seats"],
-    });
+    const rowWithSeats = await this.rowRepository.findByIdWithSeats(
+      savedRow.id
+    );
 
     await this.capacityService.recalculateFromSection(
       sectionId,
       section.venue.id
     );
-    await this.cacheService.clearVenueCache(section.venue.id);
+
+    await this.cacheService.clearVenue(section.venue.id);
 
     logger.info(
       `🪑 Sıra eklendi: ${rowData.rowLabel} (${rowData.seatCount} koltuk)`
@@ -225,11 +185,7 @@ export class VenueManagerService {
   }
 
   async deleteRow(rowId: string): Promise<boolean> {
-    const row = await this.rowRepository.findOne({
-      where: { id: rowId },
-      relations: ["section", "section.venue"],
-    });
-
+    const row = await this.rowRepository.findByIdWithRelations(rowId);
     if (!row) return false;
 
     const sectionId = row.section.id;
@@ -238,7 +194,7 @@ export class VenueManagerService {
     await this.rowRepository.remove(row);
 
     await this.capacityService.recalculateFromSection(sectionId, venueId);
-    await this.cacheService.clearVenueCache(venueId);
+    await this.cacheService.clearVenue(venueId);
 
     return true;
   }
@@ -314,7 +270,7 @@ export class VenueManagerService {
 
       await queryRunner.commitTransaction();
 
-      await this.cacheService.clearVenueCache(section.venue.id);
+      await this.cacheService.clearVenue(section.venue.id);
 
       logger.info(
         `🪑 Toplu işlem tamam: ${savedRows.length} sıra, ${totalSeatsCreated} koltuk eklendi.`
@@ -340,35 +296,27 @@ export class VenueManagerService {
     rowId: string,
     seatData: { seatNumber: string }
   ): Promise<Seat> {
-    const row = await this.rowRepository.findOne({
-      where: { id: rowId },
-      relations: ["section", "section.venue"],
-    });
-
+    const row = await this.rowRepository.findByIdWithRelations(rowId);
     if (!row) {
       throw new NotFoundError("Sıra", rowId);
     }
 
-    const result = await this.seatRepository
-      .createQueryBuilder()
-      .insert()
-      .into(Seat)
-      .values({
+    await this.seatRepository.bulkInsert([
+      {
         seatNumber: seatData.seatNumber,
         rowId: row.id,
-      })
-      .execute();
+      },
+    ]);
 
-    const seatId = result.identifiers[0].id;
-    const saved = await this.seatRepository.findOne({
-      where: { id: seatId },
-    });
+    const seats = await this.seatRepository.findByRowId(rowId);
+    const saved = seats.find((s) => s.seatNumber === seatData.seatNumber);
 
     await this.capacityService.recalculateFromSection(
       row.section.id,
       row.section.venue.id
     );
-    await this.cacheService.clearVenueCache(row.section.venue.id);
+
+    await this.cacheService.clearVenue(row.section.venue.id);
 
     logger.info(`🪑 Koltuk eklendi: ${seatData.seatNumber}`);
     return saved!;
@@ -378,11 +326,7 @@ export class VenueManagerService {
     rowId: string,
     bulkData: { startNumber: number; endNumber: number; prefix?: string }
   ): Promise<Seat[]> {
-    const row = await this.rowRepository.findOne({
-      where: { id: rowId },
-      relations: ["section", "section.venue"],
-    });
-
+    const row = await this.rowRepository.findByIdWithRelations(rowId);
     if (!row) {
       throw new NotFoundError("Sıra", rowId);
     }
@@ -397,23 +341,16 @@ export class VenueManagerService {
       });
     }
 
-    await this.seatRepository
-      .createQueryBuilder()
-      .insert()
-      .into(Seat)
-      .values(seatValues)
-      .execute();
+    await this.seatRepository.bulkInsert(seatValues);
 
-    const savedSeats = await this.seatRepository.find({
-      where: { row: { id: rowId } },
-      order: { seatNumber: "ASC" },
-    });
+    const savedSeats = await this.seatRepository.findByRowId(rowId);
 
     await this.capacityService.recalculateFromSection(
       row.section.id,
       row.section.venue.id
     );
-    await this.cacheService.clearVenueCache(row.section.venue.id);
+
+    await this.cacheService.clearVenue(row.section.venue.id);
 
     logger.info(
       `🪑 Toplu koltuk eklendi: ${seatValues.length} koltuk (${prefix})`
@@ -425,43 +362,30 @@ export class VenueManagerService {
     seatId: string,
     updates: { seatNumber?: string }
   ): Promise<Seat | null> {
-    const seat = await this.seatRepository.findOne({
-      where: { id: seatId },
-      relations: ["row", "row.section", "row.section.venue"],
-    });
-
+    const seat = await this.seatRepository.findByIdWithRelations(seatId);
     if (!seat) return null;
 
-    Object.assign(seat, updates);
-    const updated = await this.seatRepository.save(seat);
+    const updated = await this.seatRepository.update(seatId, updates);
+    await this.cacheService.clearVenue(seat.row.section.venue.id);
 
-    await this.cacheService.clearVenueCache(seat.row.section.venue.id);
     return updated;
   }
 
   async deleteSeat(seatId: string): Promise<boolean> {
-    const seat = await this.seatRepository.findOne({
-      where: { id: seatId },
-      relations: ["row", "row.section", "row.section.venue"],
-    });
-
+    const seat = await this.seatRepository.findByIdWithRelations(seatId);
     if (!seat) return false;
 
     const sectionId = seat.row.section.id;
     const venueId = seat.row.section.venue.id;
 
     await this.seatRepository.remove(seat);
-
     await this.capacityService.recalculateFromSection(sectionId, venueId);
-    await this.cacheService.clearVenueCache(venueId);
+    await this.cacheService.clearVenue(venueId);
 
     return true;
   }
 
   async getRowSeats(rowId: string): Promise<Seat[]> {
-    return await this.seatRepository.find({
-      where: { row: { id: rowId } },
-      order: { seatNumber: "ASC" },
-    });
+    return this.seatRepository.findByRowId(rowId);
   }
 }

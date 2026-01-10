@@ -1,7 +1,9 @@
 export interface IVenueCacheService {
-  getCachedVenueDetails(venueId: string): Promise<any | null>;
-  cacheVenueDetails(venueId: string, data: any): Promise<void>;
-  clearVenueCache(venueId: string): Promise<void>;
+  set<T>(key: string, data: T): Promise<void>;
+  get<T>(key: string): Promise<T | null>;
+  clear(key: string): Promise<void>;
+  clearVenue(venueId: string): Promise<void>;
+  getVenueKey(venueId: string): string;
 }
 
 export interface IVenueCapacityService {

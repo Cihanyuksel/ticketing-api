@@ -8,6 +8,7 @@ import {
 } from "../../common/errors/app.error";
 import { User } from "./user.entity";
 import { LoginDTO, RefreshTokenDTO, RegisterDTO } from "./auth.dto";
+import { IUserRepository } from "./user.repository.interface";
 
 export interface AuthResponse {
   user: Partial<User>;
@@ -22,14 +23,15 @@ export class AuthService {
   private readonly MAX_LOGIN_ATTEMPTS = 5;
   private readonly LOGIN_ATTEMPT_WINDOW = 900;
 
+  constructor(private readonly userRepository: IUserRepository) {}
+
   //Register
   async register(data: RegisterDTO): Promise<AuthResponse> {
-    const existingUser = await User.findOneBy({ email: data.email });
+    const existingUser = await this.userRepository.findByEmail(data.email);
     if (existingUser)
       throw new ConflictError("Bu email adresi zaten kullanımda.");
 
-    const newUser = User.create({ ...data });
-    await newUser.save();
+    const newUser = await this.userRepository.create(data);
 
     return this.generateAuthResponse(newUser);
   }
@@ -45,18 +47,7 @@ export class AuthService {
       );
     }
 
-    const user = await User.findOne({
-      where: { email },
-      select: [
-        "id",
-        "email",
-        "password",
-        "role",
-        "firstName",
-        "lastName",
-        "isActive",
-      ],
-    });
+    const user = await this.userRepository.findByEmailWithPassword(email);
 
     if (!user || !(await user.validatePassword(password))) {
       await redisClient.incr(`login_attempts:${email}`);
@@ -108,10 +99,7 @@ export class AuthService {
       );
     }
 
-    const user = await User.findOne({
-      where: { id: userId },
-      select: ["id", "email", "role", "firstName", "lastName", "isActive"],
-    });
+    const user = await this.userRepository.findById(userId);
 
     if (!user) throw new UnauthorizedError("Kullanıcı bulunamadı.");
 
