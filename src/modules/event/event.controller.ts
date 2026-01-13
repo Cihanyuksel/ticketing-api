@@ -1,16 +1,11 @@
 import { Request, Response } from "express";
-import { EventService } from "./services/event.services";
 import { asyncHandlerWithThis } from "../../common/middleware/async-handler";
 import { ApiResponse } from "../../common/responses/api-response";
+import { EventService } from "./services/event.services";
 
 export class EventController {
-  private eventService: EventService;
+  constructor(private eventService: EventService) {}
 
-  constructor() {
-    this.eventService = new EventService();
-  }
-
-  // 1. CREATE EVENT
   createEvent = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -19,7 +14,6 @@ export class EventController {
     }
   );
 
-  // 2. CREATE SESSION
   createSession = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -28,7 +22,6 @@ export class EventController {
     }
   );
 
-  // 3. ADD PRICES TO SESSION
   addPrices = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -37,7 +30,6 @@ export class EventController {
     }
   );
 
-  // 4. LIST ALL EVENTS
   getEvents = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -46,7 +38,6 @@ export class EventController {
     }
   );
 
-  // 5. GET SESSION DETAILS (Includes prices and rules)
   getSessionDetails = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -56,7 +47,6 @@ export class EventController {
     }
   );
 
-  // 6. GET EVENT BY ID
   getEventById = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -66,7 +56,6 @@ export class EventController {
     }
   );
 
-  // 7. UPDATE EVENT
   updateEvent = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -76,7 +65,6 @@ export class EventController {
     }
   );
 
-  // 8. DELETE EVENT
   deleteEvent = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -86,7 +74,6 @@ export class EventController {
     }
   );
 
-  // 9. UPDATE SESSION
   updateSession = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -99,7 +86,6 @@ export class EventController {
     }
   );
 
-  // 10. DELETE SESSION
   deleteSession = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -109,7 +95,6 @@ export class EventController {
     }
   );
 
-  // 11. CREATE CATEGORY
   createCategory = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -122,11 +107,6 @@ export class EventController {
     }
   );
 
-  // ============================================
-  // PRICING RULES
-  // ============================================
-
-  // 12. CREATE PRICING RULE
   createPricingRule = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -135,7 +115,6 @@ export class EventController {
     }
   );
 
-  // 13. LIST PRICING RULES BY SESSION
   getPricingRules = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -145,7 +124,6 @@ export class EventController {
     }
   );
 
-  // 14. UPDATE PRICING RULE
   updatePricingRule = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -155,7 +133,6 @@ export class EventController {
     }
   );
 
-  // 15. DELETE PRICING RULE
   deletePricingRule = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -165,11 +142,6 @@ export class EventController {
     }
   );
 
-  // ============================================
-  // DYNAMIC PRICING (Strategy Pattern)
-  // ============================================
-
-  // 16. CALCULATE SINGLE PRICE (Includes rules)
   calculatePrice = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -192,7 +164,6 @@ export class EventController {
     }
   );
 
-  // 17. CALCULATE ALL PRICES FOR A SESSION
   calculateSessionPrices = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {

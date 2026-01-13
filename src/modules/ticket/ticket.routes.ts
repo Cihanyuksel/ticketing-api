@@ -1,15 +1,11 @@
 import { Router } from "express";
-import { TicketController } from "./ticket.controller";
-import { TicketService } from "./ticket.services";
-import { LockService } from "../../common/lock.service";
+import { TicketModule } from "./ticket.module";
 import { IssueTicketDto } from "./ticket.dto";
 import { validateRequest } from "../../common/middleware/validate-request";
 
 const router = Router();
 
-const lockService = new LockService();
-const ticketService = new TicketService(undefined, undefined, lockService);
-const ticketController = new TicketController(ticketService);
+const ticketController = TicketModule.getController();
 
 // POST /api/tickets/issue
 router.post(

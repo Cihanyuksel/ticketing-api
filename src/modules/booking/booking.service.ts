@@ -1,21 +1,21 @@
-import { Booking, BookingStatus } from "./booking.entity";
-import { PricingCalculatorService } from "../event/services/pricing-calculater.service";
 import {
   BadRequestError,
-  NotFoundError,
   ConflictError,
+  NotFoundError,
 } from "../../common/errors/app.error";
-import logger from "../../utils/logger";
-import { TicketRepository } from "../ticket/ticket.repository";
-import { BookingRepository } from "./booking.repository";
 import { ILockService } from "../../common/lock.service.interface";
+import logger from "../../utils/logger";
+import { PricingCalculatorService } from "../event/services/pricing-calculater.service";
+import { ITicketRepository } from "../ticket/ticket.repository.interface";
+import { Booking, BookingStatus } from "./booking.entity";
+import { IBookingRepository } from "./booking.repository.interface";
 
 export class BookingService {
   private static LOCK_TTL = 600;
 
   constructor(
-    private readonly ticketRepo: typeof TicketRepository,
-    private readonly bookingRepo: typeof BookingRepository,
+    private readonly ticketRepo: ITicketRepository,
+    private readonly bookingRepo: IBookingRepository,
     private readonly lockService: ILockService,
     private readonly pricingCalculator: PricingCalculatorService
   ) {}

@@ -192,7 +192,6 @@ export class VenueManagerService {
     const venueId = row.section.venue.id;
 
     await this.rowRepository.remove(row);
-
     await this.capacityService.recalculateFromSection(sectionId, venueId);
     await this.cacheService.clearVenue(venueId);
 

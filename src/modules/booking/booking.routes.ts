@@ -1,10 +1,5 @@
 import { Router } from "express";
-import { BookingController } from "./booking.controller";
-import { BookingService } from "./booking.service";
-import { TicketRepository } from "../ticket/ticket.repository";
-import { BookingRepository } from "./booking.repository";
-import { LockService } from "../../common/lock.service";
-import { PricingCalculatorService } from "../event/services/pricing-calculater.service";
+import { BookingModule } from "./booking.module";
 import {
   CreateBookingDto,
   CancelBookingDto,
@@ -14,17 +9,7 @@ import { validateRequest } from "../../common/middleware/validate-request";
 
 const router = Router();
 
-const lockService = new LockService();
-const pricingCalculator = new PricingCalculatorService();
-
-const bookingService = new BookingService(
-  TicketRepository,
-  BookingRepository,
-  lockService,
-  pricingCalculator
-);
-
-const bookingController = new BookingController(bookingService);
+const bookingController = BookingModule.getController();
 
 router.post(
   "/",

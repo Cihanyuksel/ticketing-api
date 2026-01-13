@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { EventController } from "./event.controller";
+import { EventModule } from "./event.module";
 import {
   CreateEventDTO,
   CreateSessionDTO,
@@ -13,7 +13,7 @@ import {
 import { validateRequest } from "../../common/middleware/validate-request";
 
 const router = Router();
-const controller = new EventController();
+const controller = EventModule.getController();
 
 // ============================================
 // EVENT ROUTES

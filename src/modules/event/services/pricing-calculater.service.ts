@@ -1,11 +1,13 @@
-import { AppDataSource } from "../../../config/db";
 import { EventSession } from "../entities/event-session.entity";
 import { TicketPrice } from "../entities/ticket-price.entity";
-import { PricingRule } from "../entities/pricing-rules.entity";
 import { PricingContext } from "../strategies/pricing-strategy.interface";
 import { PricingStrategyFactory } from "../strategies/pricing-strategy.factory";
 import { NotFoundError } from "../../../common/errors/app.error";
 import { RuleType } from "../entities/enum";
+import { IEventSessionRepository } from "../repositories/interface/event-session.repository.interface";
+import { ITicketPriceRepository } from "../repositories/interface/ticket-price.repository.interface";
+import { IPricingRuleRepository } from "../repositories/interface/pricing-rule.repository.interface";
+import { PricingRule } from "../entities/pricing-rules.entity";
 
 export interface UserContext {
   userId?: string;
@@ -15,23 +17,22 @@ export interface UserContext {
 }
 
 export class PricingCalculatorService {
-  private sessionRepo = AppDataSource.getRepository(EventSession);
-  private priceRepo = AppDataSource.getRepository(TicketPrice);
-  private ruleRepo = AppDataSource.getRepository(PricingRule);
+  constructor(
+    private sessionRepo: IEventSessionRepository,
+    private priceRepo: ITicketPriceRepository,
+    private ruleRepo: IPricingRuleRepository
+  ) {}
 
-  // Returns how many seats are already booked for the session
   async getBookedSeatsCount(sessionId: string): Promise<number> {
     return 0;
   }
 
-  // Returns remaining time until event start (in minutes)
   getMinutesUntilEvent(eventDate: Date): number {
     const now = new Date();
     const diff = eventDate.getTime() - now.getTime();
     return Math.floor(diff / 60000);
   }
 
-  // Calculates final ticket price using strategy + pricing rules
   async calculateFinalPrice(
     sessionId: string,
     basePriceId: string,
@@ -79,7 +80,6 @@ export class PricingCalculatorService {
     };
   }
 
-  // Applies active pricing rules in priority order
   private async applyPricingRules(
     sessionId: string,
     currentPrice: number,
@@ -122,7 +122,6 @@ export class PricingCalculatorService {
     return { finalPrice, appliedRules, totalDiscount };
   }
 
-  // Checks whether rule conditions match the user context
   private checkRuleConditions(
     rule: PricingRule,
     userContext: UserContext
@@ -164,7 +163,6 @@ export class PricingCalculatorService {
     return true;
   }
 
-  // Applies rule calculation to the current price
   private applyRule(
     rule: PricingRule,
     currentPrice: number,
@@ -190,7 +188,6 @@ export class PricingCalculatorService {
     }
   }
 
-  // Calculates strategy-based prices for all ticket types
   async calculateAllPricesForSession(sessionId: string): Promise<{
     sessionId: string;
     strategy: string;

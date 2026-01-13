@@ -1,13 +1,12 @@
 import { Request, Response } from "express";
-import { BookingService } from "./booking.service";
 import { asyncHandlerWithThis } from "../../common/middleware/async-handler";
 import { ApiResponse } from "../../common/responses/api-response";
 import { CreateBookingDto } from "./booking.dto";
+import { BookingService } from "./booking.service";
 
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
-  // POST /bookings
   createBooking = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -29,7 +28,6 @@ export class BookingController {
     }
   );
 
-  // GET /bookings/:bookingId
   getBooking = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {
@@ -39,7 +37,6 @@ export class BookingController {
     }
   );
 
-  // PATCH /bookings/:bookingId/cancel
   cancelBooking = asyncHandlerWithThis(
     this,
     async (req: Request, res: Response) => {

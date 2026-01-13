@@ -1,14 +1,16 @@
-import { AppDataSource } from "../../config/db";
-import { Ticket, TicketStatus } from "./ticket.entity";
-import { Booking, BookingStatus } from "../booking/booking.entity";
-import logger from "../../utils/logger";
 import { BadRequestError, NotFoundError } from "../../common/errors/app.error";
 import { ILockService } from "../../common/lock.service.interface";
+import { AppDataSource } from "../../config/db";
+import logger from "../../utils/logger";
+import { Booking, BookingStatus } from "../booking/booking.entity";
+import { IBookingRepository } from "../booking/booking.repository.interface";
+import { Ticket, TicketStatus } from "./ticket.entity";
+import { ITicketRepository } from "./ticket.repository.interface";
 
 export class TicketService {
   constructor(
-    private readonly ticketRepo = AppDataSource.getRepository(Ticket),
-    private readonly bookingRepo = AppDataSource.getRepository(Booking),
+    private readonly ticketRepo: ITicketRepository,
+    private readonly bookingRepo: IBookingRepository,
     private readonly lockService: ILockService
   ) {}
 
@@ -32,15 +34,16 @@ export class TicketService {
   }
 
   private createTicketFromBooking(booking: Booking): Ticket {
-    const newTicket = new Ticket();
-    newTicket.session = booking.session;
-    newTicket.seat = booking.seat!;
-    newTicket.user = booking.user;
-    newTicket.price = booking.totalAmount;
-    newTicket.booking = booking;
-    newTicket.status = TicketStatus.PAID;
-    newTicket.purchasedAt = new Date();
-    newTicket.referenceCode = this.generateReferenceCode();
+    const newTicket = this.ticketRepo.create({
+      session: booking.session,
+      seat: booking.seat!,
+      user: booking.user,
+      price: booking.totalAmount,
+      booking: booking,
+      status: TicketStatus.PAID,
+      purchasedAt: new Date(),
+      referenceCode: this.generateReferenceCode(),
+    });
 
     return newTicket;
   }
