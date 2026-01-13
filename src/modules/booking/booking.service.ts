@@ -4,6 +4,7 @@ import {
   NotFoundError,
 } from "../../common/errors/app.error";
 import { ILockService } from "../../common/lock.service.interface";
+import { AppRedisClient } from "../../config/redis";
 import logger from "../../utils/logger";
 import { PricingCalculatorService } from "../event/services/pricing-calculater.service";
 import { ITicketRepository } from "../ticket/ticket.repository.interface";
@@ -17,7 +18,8 @@ export class BookingService {
     private readonly ticketRepo: ITicketRepository,
     private readonly bookingRepo: IBookingRepository,
     private readonly lockService: ILockService,
-    private readonly pricingCalculator: PricingCalculatorService
+    private readonly pricingCalculator: PricingCalculatorService,
+    private redisClient: AppRedisClient
   ) {}
 
   async createBooking(data: {
@@ -31,7 +33,7 @@ export class BookingService {
     let lockAcquired = false;
 
     try {
-      // Lock
+      // 1. Lock
       lockAcquired = await this.lockService.acquireLock(
         lockKey,
         BookingService.LOCK_TTL
@@ -41,7 +43,7 @@ export class BookingService {
         throw new BadRequestError("Bu koltuk şu an işlem görüyor.");
       }
 
-      // Ticket Check
+      // 2. Controller (Ticket & Active Booking)
       const soldTicket = await this.ticketRepo.findSoldTicket(
         data.sessionId,
         data.seatId
@@ -50,7 +52,6 @@ export class BookingService {
         throw new ConflictError("Bu koltuk satılmış.");
       }
 
-      // Booking Check
       const activeBooking = await this.bookingRepo.findActiveBooking(
         data.sessionId,
         data.seatId
@@ -59,13 +60,14 @@ export class BookingService {
         throw new ConflictError("Aktif rezervasyon var.");
       }
 
-      // Price Calculation
+      // 3. Calculate Price
       const priceResult = await this.pricingCalculator.calculateFinalPrice(
         data.sessionId,
         data.priceId,
         { userId: data.userId, userAge: data.userAge, ticketQuantity: 1 }
       );
 
+      // 4. Save Reservation to DB
       const booking = this.bookingRepo.create({
         sessionId: data.sessionId,
         seatId: data.seatId,
@@ -77,12 +79,12 @@ export class BookingService {
 
       const saved = await this.bookingRepo.save(booking);
 
+      await this.redisClient.incr(`session:${data.sessionId}:booked_count`);
+
       logger.info({
-        message: "Rezervasyon oluşturuldu",
+        message: "Rezervasyon oluşturuldu ve Sayaç artırıldı",
         bookingId: saved.id,
         sessionId: data.sessionId,
-        seatId: data.seatId,
-        userId: data.userId,
       });
 
       return saved;
@@ -120,37 +122,10 @@ export class BookingService {
     const lockKey = `lock:session:${booking.sessionId}:seat:${booking.seatId}`;
     await this.lockService.releaseLock(lockKey);
 
-    logger.info({
-      message: "Rezervasyon iptal edildi ve lock serbest bırakıldı",
-      bookingId,
-      lockKey,
-    });
-  }
-
-  async confirmBooking(bookingId: string): Promise<void> {
-    const booking = await this.bookingRepo.findOne({
-      where: { id: bookingId },
-      relations: ["session", "seat"],
-    });
-
-    if (!booking) {
-      throw new NotFoundError("Rezervasyon bulunamadı.");
-    }
-
-    if (booking.status !== BookingStatus.PENDING) {
-      throw new BadRequestError(
-        "Sadece beklemedeki rezervasyonlar onaylanabilir."
-      );
-    }
-
-    booking.status = BookingStatus.CONFIRMED;
-    await this.bookingRepo.save(booking);
-
-    const lockKey = `lock:session:${booking.sessionId}:seat:${booking.seatId}`;
-    await this.lockService.releaseLock(lockKey);
+    await this.redisClient.decr(`session:${booking.sessionId}:booked_count`);
 
     logger.info({
-      message: "Rezervasyon onaylandı ve lock serbest bırakıldı",
+      message: "Rezervasyon iptal edildi, lock açıldı, sayaç düşüldü",
       bookingId,
       lockKey,
     });

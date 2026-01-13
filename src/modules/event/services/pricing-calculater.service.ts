@@ -8,6 +8,7 @@ import { IEventSessionRepository } from "../repositories/interface/event-session
 import { ITicketPriceRepository } from "../repositories/interface/ticket-price.repository.interface";
 import { IPricingRuleRepository } from "../repositories/interface/pricing-rule.repository.interface";
 import { PricingRule } from "../entities/pricing-rules.entity";
+import { AppRedisClient } from "../../../config/redis";
 
 export interface UserContext {
   userId?: string;
@@ -20,11 +21,14 @@ export class PricingCalculatorService {
   constructor(
     private sessionRepo: IEventSessionRepository,
     private priceRepo: ITicketPriceRepository,
-    private ruleRepo: IPricingRuleRepository
+    private ruleRepo: IPricingRuleRepository,
+    private redisClient: AppRedisClient
   ) {}
 
   async getBookedSeatsCount(sessionId: string): Promise<number> {
-    return 0;
+    const key = `session:${sessionId}:booked_count`;
+    const count = await this.redisClient.get(key);
+    return count ? parseInt(count, 10) : 0;
   }
 
   getMinutesUntilEvent(eventDate: Date): number {

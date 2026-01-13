@@ -53,6 +53,8 @@ export class TicketService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    let lockKey: string | null = null;
+
     try {
       const booking = await queryRunner.manager.findOne(Booking, {
         where: { id: bookingId },
@@ -65,6 +67,8 @@ export class TicketService {
 
       this.validateBookingStatus(booking);
 
+      lockKey = `lock:session:${booking.sessionId}:seat:${booking.seatId}`;
+
       const newTicket = this.createTicketFromBooking(booking);
       await queryRunner.manager.save(newTicket);
 
@@ -73,21 +77,20 @@ export class TicketService {
 
       await queryRunner.commitTransaction();
 
-      const lockKey = `lock:session:${booking.sessionId}:seat:${booking.seatId}`;
-      await this.lockService.releaseLock(lockKey);
-
-      logger.info({
-        message: "Bilet kesildi ve lock serbest bırakıldı",
-        ticketId: newTicket.id,
-        referenceCode: newTicket.referenceCode,
-        bookingId,
-        lockKey,
-      });
+      if (lockKey) {
+        await this.lockService.releaseLock(lockKey);
+        logger.info({
+          message: "Bilet kesildi ve lock serbest bırakıldı",
+          ticketId: newTicket.id,
+          referenceCode: newTicket.referenceCode,
+          bookingId,
+        });
+      }
 
       return newTicket;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      logger.error({ message: "Bilet oluşturma hatası", error });
+      logger.error({ message: "Bilet oluşturma hatası", error, bookingId });
       throw error;
     } finally {
       await queryRunner.release();

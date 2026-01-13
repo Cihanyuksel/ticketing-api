@@ -1,3 +1,4 @@
+import redisClient from "../../config/redis";
 import { TypeOrmVenueRepository } from "../venue/repository";
 import { EventController } from "./event.controller";
 import { EventCategoryRepository } from "./repositories/typeorm/event-category.repository";
@@ -22,7 +23,8 @@ export class EventModule {
     const pricingCalculator = new PricingCalculatorService(
       sessionRepo,
       priceRepo,
-      ruleRepo
+      ruleRepo,
+      redisClient
     );
 
     const venueRepo = new TypeOrmVenueRepository();

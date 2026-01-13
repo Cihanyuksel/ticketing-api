@@ -1,5 +1,5 @@
-// modules/booking/booking.module.ts
 import { LockService } from "../../common/lock.service";
+import redisClient from "../../config/redis";
 import { EventSessionRepository } from "../event/repositories/typeorm/event-session.repository";
 import { PricingRuleRepository } from "../event/repositories/typeorm/pricing-rule.repository";
 import { TicketPriceRepository } from "../event/repositories/typeorm/ticket-price.repository";
@@ -21,7 +21,8 @@ export class BookingModule {
     const pricingCalculator = new PricingCalculatorService(
       sessionRepo,
       priceRepo,
-      ruleRepo
+      ruleRepo,
+      redisClient
     );
 
     // Booking
@@ -32,7 +33,8 @@ export class BookingModule {
       ticketRepo,
       bookingRepo,
       lockService,
-      pricingCalculator
+      pricingCalculator,
+      redisClient
     );
 
     return new BookingController(bookingService);

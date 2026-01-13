@@ -14,10 +14,16 @@ redisClient.on("connect", () => console.info("⚡ Redis bağlantısı aktif!"));
 
 (async () => {
   try {
-    await redisClient.connect();
+    if (!redisClient.isOpen) {
+        await redisClient.connect();
+    }
   } catch (err) {
     console.error("❌ Redis Bağlantı Başarısız:", err);
   }
 })();
+
+// 🔥 KRİTİK EKLEME: 
+// Oluşturduğumuz client'ın tipini (RESP3 dahil) tam olarak dışarı aktarıyoruz.
+export type AppRedisClient = typeof redisClient;
 
 export default redisClient;
